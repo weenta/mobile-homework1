@@ -46,8 +46,69 @@ val purchasedBarcodes = listOf(
     "ITEM000005"
 )
 
+fun geFreeCount(num: Int): Int {
+    return (num - num % promotionNum) / promotionNum
+}
+
+fun isInPromotions(barcode: String): Boolean {
+    return loadPromotions()[0].barcodes.contains(barcode)
+}
+
+fun getItemCount(barcode: String): Int {
+    val decoupledCodeAndCount = barcode.split('-')
+    return if (decoupledCodeAndCount.size > 1) decoupledCodeAndCount[1].toInt() else 1
+}
+
+fun getItemCode(barcode: String): String {
+    return barcode.split('-')[0]
+}
+
+fun getPurchasedItems(purchasedBarcodes: List<String>): LinkedHashMap<String, Int> {
+    val items = linkedMapOf<String, Int>()
+    purchasedBarcodes.forEach {
+        val itemCount = getItemCount(it)
+        val itemCode = getItemCode(it)
+        if (items[itemCode] == null) {
+            items[itemCode] = itemCount
+        } else {
+            items[itemCode] = itemCount + items[itemCode]!!
+        }
+    }
+    return items
+}
+
+fun formatNumber(num: Double): String {
+    return String.format("%.2f", num)
+}
+
 fun getReceipt(): String {
-    return ""
+    val purchasedItems = getPurchasedItems(purchasedBarcodes)
+    var totalPaid: Double = 0.0
+    var totalDiscount: Double = 0.0
+    var receipt = """
+***<没钱赚商店>收据***"""
+
+    for (barcode in purchasedItems.keys) {
+        val item = loadAllItems().find { it -> it.barcode == barcode }!!
+        val count = purchasedItems[barcode]!!
+        val totalPrice = item.price * count
+        val discount = if (isInPromotions(item.barcode)) item.price * geFreeCount(count) else 0.0
+        totalPaid = totalPaid + totalPrice - discount
+        totalDiscount += discount
+
+        receipt += "\n名称：${item.name}，数量：${count}${item.unit}，单价：${formatNumber(item.price)}(元)，" +
+                "小计：${totalPrice - discount}(元)"
+
+    }
+
+    receipt += """
+----------------------
+总计：${formatNumber(totalPaid)}(元)
+节省：${formatNumber(totalDiscount)}(元)
+**********************
+"""
+
+    return receipt
 }
 
 const val expectedReceipt = """
@@ -60,3 +121,5 @@ const val expectedReceipt = """
 节省：7.50(元)
 **********************
 """
+
+const val promotionNum = 3
