@@ -83,13 +83,14 @@ fun formatNumber(num: Double): String {
 
 fun getReceipt(): String {
     val purchasedItems = getPurchasedItems(purchasedBarcodes)
+    val allItems = loadAllItems()
     var totalPaid: Double = 0.0
     var totalDiscount: Double = 0.0
     var receipt = """
 ***<没钱赚商店>收据***"""
 
     for (barcode in purchasedItems.keys) {
-        val item = loadAllItems().find { it -> it.barcode == barcode }!!
+        val item = allItems.find { it -> it.barcode == barcode }!!
         val count = purchasedItems[barcode]!!
         val totalPrice = item.price * count
         val discount = if (isInPromotions(item.barcode)) item.price * geFreeCount(count) else 0.0
